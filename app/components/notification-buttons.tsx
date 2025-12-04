@@ -10,7 +10,7 @@ export default function NotificationButtons() {
         style={styles.primaryButton}
         activeOpacity={0.85}
         onPress={() => {
-          sendNotification('Notification A', 'Hello from the WebView tab!', 5);
+          sendNotification('Notification A', 'Hello from the WebView tab!', 2);
         }}
       >
         <View style={styles.buttonContent}>
@@ -23,7 +23,7 @@ export default function NotificationButtons() {
         style={styles.secondaryButton}
         activeOpacity={0.85}
         onPress={() => {
-          sendNotification('Notification B', 'Your video is ready to play.', 5, 'video');
+          sendNotification('Notification B', 'Your video is ready to play.', 3, 'video');
         }}
       >
         <View style={styles.buttonContent}>
