@@ -1,10 +1,34 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useState } from "react";
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { WebView } from "react-native-webview";
+import { initNotifications, sendNotification } from '../utils/notifications';
+
 
 export default function HomeScreen() {
   const [loaded, setLoaded] = useState(false);
+
+
+  useEffect(() => {
+    // Initialize centralized notification handlers and get cleanup
+    let cleanup: (() => void) | undefined;
+    (async () => {
+      cleanup = await initNotifications((data) => {
+        try {
+          const target = data?.target || data?.open;
+          if (target) {
+            const path = typeof target === 'string' && target.startsWith('/') ? target : `/${target}`;
+            router.push(path);
+          }
+        } catch (e) {
+          console.warn('Notification response handling error', e);
+        }
+      });
+    })();
+
+    return () => cleanup?.();
+  }, []);
 
   return (
     <View style={{ flex: 1 }}>
@@ -14,6 +38,7 @@ export default function HomeScreen() {
           onLoadEnd={() => {
             if (!loaded) {
               setLoaded(true);
+              sendNotification("Page Loaded", "WebView content finished loading!");
             }
           }}
         />
@@ -30,7 +55,7 @@ export default function HomeScreen() {
             style={styles.primaryButton}
             activeOpacity={0.85}
             onPress={() => {
-              // Notify A action
+              sendNotification('Notification A', 'Hello from the WebView tab!', 5);
             }}
           >
             <View style={styles.buttonContent}>
@@ -42,10 +67,10 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={styles.secondaryButton}
             activeOpacity={0.85}
+       
             onPress={() => {
-              // Notify B action
-            }}
-          >
+              sendNotification('Notification B', 'Your video is ready to play.', 5, 'video');
+            }}>
             <View style={styles.buttonContent}>
               <MaterialIcons name="info-outline" size={20} color="#111" />
               <Text style={styles.secondaryButtonText}>Notify B</Text>
@@ -85,6 +110,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     flex: 1,
+    // marginRight: 8,
     backgroundColor: '#2563eb',
     borderRadius: 12,
     paddingVertical: 14,
@@ -102,7 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     paddingVertical: 14,
-    paddingLeft:12,
+     paddingLeft:12,
     paddingRight:18,
     borderWidth: 1,
     borderColor: '#e6e6e6',
