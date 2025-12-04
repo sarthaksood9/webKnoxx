@@ -48,7 +48,8 @@ export const sendNotification = (
   title: string,
   body: string,
   delaySeconds = 0,
-  target?: string
+  target?: string,
+  sound: boolean = true
 ) => {
   setTimeout(async () => {
     try {
