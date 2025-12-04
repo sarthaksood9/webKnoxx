@@ -2,10 +2,12 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { AVPlaybackStatus, Video } from 'expo-av';
 import React, { useRef, useState } from 'react';
 import {
-  Dimensions, Pressable, StyleSheet,
+  Dimensions, Pressable,
+  ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 
 const STREAM_URI = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
@@ -15,39 +17,65 @@ export default function VideoScreen() {
   const [status, setStatus] = useState<AVPlaybackStatus | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [progressWidth, setProgressWidth] = useState(0);
+  const seekingRef = useRef(false);
 
   const onPlayPause = async () => {
     if (!videoRef.current) return;
-    const s = await videoRef.current.getStatusAsync();
-    if (s.isPlaying) {
-      await videoRef.current.pauseAsync();
-    } else {
-      await videoRef.current.playAsync();
+    try {
+      const s = await videoRef.current.getStatusAsync();
+      if (s.isPlaying) {
+        await videoRef.current.pauseAsync();
+      } else {
+        await videoRef.current.playAsync();
+      }
+    } catch (e: any) {
+      if (String(e).includes('Seeking interrupted')) return;
+      console.warn('Playback control error', e);
     }
   };
 
   const seekToPercent = async (percent: number) => {
     if (!videoRef.current || !status) return;
+    if (seekingRef.current) return;
     const duration = status.durationMillis || 0;
     const position = Math.max(0, Math.min(duration, Math.round(percent * duration)));
+    seekingRef.current = true;
     try {
       await videoRef.current.setPositionAsync(position);
-    } catch (e) {
-      console.log(e)
+    } catch (e: any) {
+      if (!String(e).includes('Seeking interrupted')) console.warn('Seek error', e);
+    } finally {
+      seekingRef.current = false;
     }
   };
 
   const rewind10 = async () => {
     if (!videoRef.current || !status) return;
+    if (seekingRef.current) return;
     const current = status.positionMillis || 0;
-    await videoRef.current.setPositionAsync(Math.max(0, current - 10000));
+    seekingRef.current = true;
+    try {
+      await videoRef.current.setPositionAsync(Math.max(0, current - 10000));
+    } catch (e: any) {
+      if (!String(e).includes('Seeking interrupted')) console.warn('Rewind error', e);
+    } finally {
+      seekingRef.current = false;
+    }
   };
 
   const forward10 = async () => {
     if (!videoRef.current || !status) return;
+    if (seekingRef.current) return;
     const current = status.positionMillis || 0;
     const duration = status.durationMillis || 0;
-    await videoRef.current.setPositionAsync(Math.min(duration, current + 10000));
+    seekingRef.current = true;
+    try {
+      await videoRef.current.setPositionAsync(Math.min(duration, current + 10000));
+    } catch (e: any) {
+      if (!String(e).includes('Seeking interrupted')) console.warn('Forward error', e);
+    } finally {
+      seekingRef.current = false;
+    }
   };
 
   const toggleMute = async () => {
@@ -128,7 +156,7 @@ export default function VideoScreen() {
         </View>
       </View>
 
-      <View style={styles.metaWrap}>
+      <ScrollView style={styles.metaWrap} contentContainerStyle={styles.metaContent}>
         <View style={styles.badge}><Text style={styles.badgeText}>HLS STREAM</Text></View>
         <Text style={styles.title}>Big Buck Bunny</Text>
         <Text style={styles.subtitle}>An open source animated movie. This example demonstrates HLS streaming playback using React Native Expo (simulated).</Text>
@@ -145,10 +173,10 @@ export default function VideoScreen() {
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailKey}>Status</Text>
-            <View style={styles.statusWrap}><View style={styles.liveDot} /><Text style={styles.liveText}>Live</Text></View>
+            <View style={styles.statusWrap}><View style={styles.liveDot} /><Text style={styles.liveText}>Video</Text></View>
           </View>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -251,6 +279,9 @@ metaWrap: {
   paddingHorizontal: 20,
   paddingTop: 18,
 },
+  metaContent: {
+    paddingBottom: 40,
+  },
 
 badge: {
   alignSelf: 'flex-start',
